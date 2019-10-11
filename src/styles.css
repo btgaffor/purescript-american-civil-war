@@ -1,0 +1,22 @@
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.end-turn {
+  align-self: flex-start;
+}
+
+.map > polygon, .map > circle {
+  fill: green;
+  fill-opacity: 0;
+}
+
+.map > polygon.highlight:hover, .map > circle.highlight:hover {
+  fill-opacity: 0.5;
+}

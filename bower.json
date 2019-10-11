@@ -1,0 +1,23 @@
+{
+  "name": "american-civil-war",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^4.1.1",
+    "purescript-console": "^4.2.0",
+    "purescript-effect": "^2.0.1",
+    "purescript-react-dom": "^6.1.0",
+    "purescript-react": "^8.0.0",
+    "purescript-web-html": "^2.3.0"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^4.0.0"
+  },
+  "resolutions": {
+    "purescript-react": ">= 6.0.0 < 8.0.0"
+  }
+}
