@@ -28,11 +28,8 @@ mountApp app =
 image :: Array Props.Props -> Array React.ReactElement -> React.ReactElement
 image = mkDOM (IsDynamic false) "image"
 
-testMaybe :: forall a b. Maybe a -> (a -> Boolean) -> b -> Maybe b
-testMaybe maybeValue predicate newValue
-  | Just value <- maybeValue
-  , true <- predicate value = Just newValue
-  | otherwise = Nothing
+toMaybe :: forall a. a -> Boolean -> Maybe a
+toMaybe value condition = if condition then Just value else Nothing
 
 concatMapWithIndex :: forall a b. (Int -> a -> Array b) -> Array a -> Array b
 concatMapWithIndex f a = concat $ mapWithIndex f a

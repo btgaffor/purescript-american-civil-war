@@ -13,7 +13,8 @@ import React.DOM.Props as Props
 import React.DOM.SVG (svg, polygon, circle)
 import React.SyntheticEvent (SyntheticMouseEvent)
 import Unsafe.Coerce (unsafeCoerce)
-import Utils (concatMapWithIndex, image, mountApp, testMaybe)
+import Utils (concatMapWithIndex, image, mountApp, toMaybe)
+import Data.Set as Set
 
 type Page a
   = ContT Unit Effect a
@@ -43,7 +44,7 @@ playTurn model = do
   case mainAction of
     RegionClick fromIndex ->
       if (isCurrentPlayerArmy model.currentTurn model.map fromIndex) then do
-        toIndex <- ContT $ \next -> mountApp $ createLeafElement mapClass { model, next }
+        toIndex <- ContT $ \next -> mountApp $ createLeafElement board { model, next, regionHighlight: DestinationsFrom fromIndex }
         pure $ doArmyMove fromIndex toIndex model
       else
         playTurn model
@@ -85,7 +86,7 @@ mainClass :: ReactClass { model :: Model, next :: MainAction -> Effect Unit }
 mainClass =
   statelessComponent \{ model, next } ->
     div [ Props.className "flex-row" ]
-      [ createLeafElement mapClass { model, next: \index -> next $ RegionClick index }
+      [ createLeafElement board { model, regionHighlight: OwnedByPlayer, next: \index -> next $ RegionClick index }
       , button [ Props.className "end-turn", Props.onClick $ \_ -> next $ EndTurn ] [ text "End Turn" ]
       ]
 
@@ -94,9 +95,13 @@ gameOverClass =
   statelessComponent \{ winner } ->
     h1 [] [ text $ show winner ]
 
-mapClass :: ReactClass { model :: Model, next :: (Int -> Effect Unit) }
-mapClass =
-  statelessComponent \{ model, next } ->
+data RegionHighlight
+  = OwnedByPlayer
+  | DestinationsFrom Int
+
+board :: ReactClass { model :: Model, regionHighlight :: RegionHighlight, next :: (Int -> Effect Unit) }
+board =
+  statelessComponent \{ model, regionHighlight, next } ->
     div [ Props.className "flex-column" ]
       [ createLeafElement mapHeader { header: "Turn: " <> show model.currentTurn }
       , svg
@@ -110,7 +115,13 @@ mapClass =
                         , Just
                             $ region.shape
                                 ( catMaybes
-                                    [ testMaybe region.army (_.side >>> (==) model.currentTurn) (Props.className "highlight")
+                                    [ case regionHighlight of
+                                        OwnedByPlayer -> (region.army <#> _.side >>> (==) model.currentTurn) >>= toMaybe (Props.className "highlight green")
+                                        DestinationsFrom fromIndex ->
+                                          if index == fromIndex then
+                                            Just (Props.className "permenant yellow")
+                                          else
+                                            (model.map !! fromIndex <#> _.connections >>> Set.member index) >>= toMaybe (Props.className "permenant green")
                                     , Just $ Props.key $ show index <> "-region"
                                     , Just $ Props.onClick \e -> (logRegionClick e index) *> next index
                                     ]
@@ -171,6 +182,7 @@ type Region
   = { army :: Maybe Army
     , shape :: Array Props.Props -> ReactElement
     , position :: { x :: Int, y :: Int }
+    , connections :: Set.Set Int
     }
 
 type Model
@@ -182,69 +194,101 @@ initialModel :: Model
 initialModel =
   { currentTurn: Union
   , map:
-    [ { army: Just { side: Union, units: Nil } -- 0
+    -- 0
+    [ { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "8,9 269,9 202,129 134,179 86,183 35,195 6,264" ] ]) []
       , position: { x: 80, y: 70 }
+      , connections: Set.fromFoldable [ 1, 2, 12 ]
       }
-    , { army: Just { side: Union, units: Nil } -- 1
+    -- 1
+    , { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "268,10 346,9 348,211 234,210 202,131" ] ]) []
       , position: { x: 255, y: 105 }
+      , connections: Set.fromFoldable [ 0, 2, 3, 4, 6 ]
       }
-    , { army: Just { side: Union, units: Nil } -- 2
+    -- 2
+    , { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "5,268 39,197 88,183 133,179 202,132 232,211 255,270" ] ]) []
       , position: { x: 100, y: 215 }
+      , connections: Set.fromFoldable [ 0, 1, 3, 11, 12 ]
       }
-    , { army: Just { side: Union, units: Nil } -- 3
+    -- 3
+    , { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "233,211 348,210 347,270 257,270" ] ]) []
       , position: { x: 270, y: 220 }
+      , connections: Set.fromFoldable [ 1, 2, 9, 10 ]
       }
-    , { army: Just { side: Union, units: Nil } -- 4
+    -- 4
+    , { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "349,9 527,6 524,88 512,134 347,135" ] ]) []
       , position: { x: 360, y: 15 }
+      , connections: Set.fromFoldable [ 1, 5, 6, 13 ]
       }
-    , { army: Just { side: Union, units: singleton { unitType: Infantry, moves: 1 } } -- 5
+    -- 5
+    , { army: Just { side: Union, units: singleton { unitType: Infantry, moves: 1 } }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "529,8 652,9 653,133 512,132 526,86" ] ]) []
       , position: { x: 563, y: 53 }
+      , connections: Set.fromFoldable [ 4, 7 ]
       }
+    -- 6
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "349,134 514,135 494,166 462,201 432,216 380,215 350,210" ] ]) []
       , position: { x: 385, y: 153 }
+      , connections: Set.fromFoldable [ 1, 4, 7, 9 ]
       }
+    -- 7
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "514,134 651,134 653,256 632,259 563,307 523,312 486,282 483,242 464,203" ] ]) []
       , position: { x: 537, y: 193 }
+      , connections: Set.fromFoldable [ 5, 6, 8, 9, 14 ]
       }
+    -- 8
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "522,314 561,309 633,259 653,257 651,404 471,405 483,330" ] ]) []
       , position: { x: 545, y: 340 }
+      , connections: Set.fromFoldable [ 7, 9, 14 ]
       }
+    -- 9
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "347,211 388,215 435,215 461,205 482,244 485,280 482,331 472,406 349,406" ] ]) []
       , position: { x: 383, y: 290 }
+      , connections: Set.fromFoldable [ 6, 7, 8, 14, 10, 3 ]
       }
+    -- 10
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "258,270 346,271 349,408 259,408 249,385 264,300" ] ]) []
       , position: { x: 278, y: 325 }
+      , connections: Set.fromFoldable [ 3, 9, 11 ]
       }
+    -- 11
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> polygon (concat [ shapeProps, [ Props.points "7,271 253,271 264,301 248,387 258,409 7,409" ] ]) []
       , position: { x: 30, y: 295 }
+      , connections: Set.fromFoldable [ 2, 10, 15 ]
       }
+    -- 12
     , { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> circle (concat [ shapeProps, [ Props.cx 107, Props.cy 180, Props.r 23 ] ]) []
       , position: { x: 83, y: 163 }
+      , connections: Set.fromFoldable [ 0, 2 ]
       }
+    -- 13
     , { army: Just { side: Union, units: Nil }
       , shape: \shapeProps -> circle (concat [ shapeProps, [ Props.cx 436, Props.cy 70, Props.r 24 ] ]) []
       , position: { x: 412, y: 53 }
+      , connections: Set.fromFoldable [ 4 ]
       }
+    -- 14
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> circle (concat [ shapeProps, [ Props.cx 492, Props.cy 305, Props.r 24 ] ]) []
       , position: { x: 468, y: 287 }
+      , connections: Set.fromFoldable [ 7, 8, 9 ]
       }
+    -- 15
     , { army: Just { side: Confederate, units: Nil }
       , shape: \shapeProps -> circle (concat [ shapeProps, [ Props.cx 136, Props.cy 345, Props.r 21 ] ]) []
       , position: { x: 111, y: 328 }
+      , connections: Set.fromFoldable [ 11 ]
       }
     ]
   }

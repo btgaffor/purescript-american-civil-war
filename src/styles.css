@@ -13,8 +13,19 @@
 }
 
 .map > polygon, .map > circle {
-  fill: green;
   fill-opacity: 0;
+}
+
+.green {
+  fill: green;
+}
+
+.yellow {
+  fill: yellow;
+}
+
+.map > polygon.permenant, .map > circle.permenant {
+  fill-opacity: 0.5;
 }
 
 .map > polygon.highlight:hover, .map > circle.highlight:hover {
