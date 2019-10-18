@@ -1,28 +1,23 @@
 module Main where
 
 import Prelude hiding (div)
-
 import Army.Models (Side(..), otherSide)
-import Board (RegionHighlight(..), armyInfoClass, boardClass, canMove, initialBoard)
+import Board (RegionHighlight(..), boardClass, canMove, initialBoard, getDestinationIndex)
 import Control.Monad.Cont (ContT(..), runContT)
 import Data.Array (updateAt, (!!))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
-import Model (Model, Region)
+import Model (Model, Region, Page)
 import React (ReactClass, createLeafElement, statelessComponent)
 import React.DOM (button, div, h1, text)
 import React.DOM.Props as Props
 import Utils (mountApp)
 
-type Page a
-  = ContT Unit Effect a
-
 main :: Effect Unit
 main = do
-  flip runContT identity
-    $ do
-        winner <- startGame initialModel
-        pure $ mountApp $ createLeafElement gameOverClass { winner: winner, next: main }
+  flip runContT identity do
+    winner <- startGame initialModel
+    pure $ gameOver winner
 
 -----------------
 -- game states --
@@ -36,7 +31,7 @@ startGame model = case getWinner model of
 
 startTurn :: Model -> Page Model
 startTurn model = do
-  mainAction <- ContT $ \next -> mountApp $ createLeafElement mainClass { model, next }
+  mainAction <- getMainAction model
   case mainAction of
     RegionClick fromIndex ->
       if (isCurrentPlayerArmy model.currentTurn model.map fromIndex) then do
@@ -48,7 +43,7 @@ startTurn model = do
 
 startMovingArmy :: Model -> Int -> Page Model
 startMovingArmy model fromIndex = do
-  toIndex <- ContT $ \next -> mountApp $ createLeafElement armyInfoClass { model, next, fromIndex }
+  toIndex <- getDestinationIndex model fromIndex
   if toIndex == fromIndex then
     startTurn model
   else
@@ -89,6 +84,9 @@ data MainAction
   = RegionClick Int
   | EndTurn
 
+getMainAction :: Model -> Page MainAction
+getMainAction model = ContT $ \next -> mountApp $ createLeafElement mainClass { model, next }
+
 mainClass :: ReactClass { model :: Model, next :: MainAction -> Effect Unit }
 mainClass =
   statelessComponent \{ model, next } ->
@@ -97,7 +95,10 @@ mainClass =
       , button [ Props.className "end-turn", Props.onClick $ \_ -> next $ EndTurn ] [ text "End Turn" ]
       ]
 
-gameOverClass :: ReactClass { winner :: Side, next :: Effect Unit }
+gameOver :: Side -> Effect Unit
+gameOver winner = mountApp $ createLeafElement gameOverClass { winner: winner }
+
+gameOverClass :: ReactClass { winner :: Side }
 gameOverClass =
   statelessComponent \{ winner } ->
     h1 [] [ text $ show winner ]

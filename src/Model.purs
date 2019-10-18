@@ -1,12 +1,17 @@
 module Model where
 
 import Prelude
+
 import Army.Models (Army, Side)
-import Data.List (List)
+import Control.Monad.Cont (ContT)
 import Data.Maybe (Maybe)
 import Data.Set (Set)
+import Effect (Effect)
 import React (ReactElement)
 import React.DOM.Props (Props)
+
+type Page a
+  = ContT Unit Effect a
 
 type Model
   = { currentTurn :: Side

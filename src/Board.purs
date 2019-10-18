@@ -1,27 +1,25 @@
 module Board where
 
-import Prelude
+import Prelude hiding (div)
 
-import Army.Models (Side(..), UnitType(..))
-import Army.Models (infantry, cavalry)
+import Army.Models (Side(..), infantry, cavalry)
 import Army.View (armyClass)
+import Control.Monad.Cont (ContT(..))
 import Control.MonadZero (guard)
 import Data.Array (all, catMaybes, concat, cons, (!!))
 import Data.Array.NonEmpty (singleton, toArray, (:))
-import Data.Foldable (foldl)
-import Data.List (List(..))
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set as Set
 import Effect (Effect)
 import Effect.Console (log)
-import Model (Board, Model, Region)
-import React (ReactClass, ReactElement, createLeafElement, statelessComponent)
-import React.DOM (button, div, h1, li, text, ul)
-import React.DOM.Props (className, cx, cy, height, href, points, r, width, key, onClick, x, y)
+import Model (Page, Board, Model, Region)
+import React (ReactClass, createLeafElement, statelessComponent)
+import React.DOM (div, h1, li, text, ul)
+import React.DOM.Props (className, cx, cy, height, href, points, r, width, key, onClick)
 import React.DOM.SVG (svg, polygon, circle)
 import React.SyntheticEvent (SyntheticMouseEvent)
 import Unsafe.Coerce (unsafeCoerce)
-import Utils (concatMapWithIndex, image, toMaybe)
+import Utils (concatMapWithIndex, image, mountApp)
 
 -- Types
 data RegionHighlight
@@ -47,6 +45,9 @@ canMove map fromIndex toIndex =
 -- View
 mapHeader :: ReactClass { header :: String }
 mapHeader = statelessComponent \{ header } -> h1 [] [ text header ]
+
+getDestinationIndex :: Model -> Int -> Page Int
+getDestinationIndex model fromIndex = ContT $ \next -> mountApp $ createLeafElement armyInfoClass { model, next, fromIndex }
 
 armyInfoClass :: ReactClass { model :: Model, next :: Int -> Effect Unit, fromIndex :: Int }
 armyInfoClass =
