@@ -1,8 +1,9 @@
 module Main where
 
 import Prelude hiding (div)
+
 import Army.Models (Side(..), otherSide)
-import Board (RegionHighlight(..), boardClass, canMove, initialBoard, getDestinationIndex)
+import Board (RegionHighlight(..), boardClass, canMove, getDestinationIndex, initialBoard, resetMoves)
 import Control.Monad.Cont (ContT(..), runContT)
 import Data.Array (updateAt, (!!))
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -39,7 +40,7 @@ startTurn model = do
         startTurn updatedModel
       else
         startTurn model
-    EndTurn -> pure $ model { currentTurn = otherSide model.currentTurn }
+    EndTurn -> pure $ model { map = resetMoves model.map model.currentTurn, currentTurn = otherSide model.currentTurn }
 
 startMovingArmy :: Model -> Int -> Page Model
 startMovingArmy model fromIndex = do

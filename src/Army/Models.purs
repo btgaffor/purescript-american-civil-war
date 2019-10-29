@@ -1,7 +1,7 @@
 module Army.Models where
 
 import Prelude
-import Data.Array.NonEmpty
+import Data.Array.NonEmpty (NonEmptyArray)
 
 type Army
   = { side :: Side
@@ -39,6 +39,14 @@ otherSide :: Side -> Side
 otherSide side
   | side == Union = Confederate
   | otherwise = Union
+
+resetArmyMoves :: ArmyUnit -> ArmyUnit
+resetArmyMoves armyUnit = case armyUnit.unitType of
+  Infantry -> armyUnit { moves = 1 }
+  Cavalry -> armyUnit { moves = 2 }
+  EliteCavalry -> armyUnit { moves = 2 }
+  Artillary -> armyUnit { moves = 1 }
+  Leader -> armyUnit { moves = 2 }
 
 instance showSide :: Show Side where
   show Union = "Union"

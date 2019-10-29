@@ -1,8 +1,7 @@
 module Board where
 
 import Prelude hiding (div)
-
-import Army.Models (Side(..), infantry, cavalry)
+import Army.Models (Side(..), resetArmyMoves, infantry, cavalry)
 import Army.View (armyClass)
 import Control.Monad.Cont (ContT(..))
 import Control.MonadZero (guard)
@@ -41,6 +40,24 @@ canMove map fromIndex toIndex =
     army <- fromRegion.army
     guard $ all (\unit -> unit.moves > 0) army.units
     pure $ true
+
+resetMoves :: Board -> Side -> Board
+resetMoves board side =
+  board
+    # map
+        ( \region ->
+            region
+              { army =
+                region.army
+                  # map
+                      ( \army ->
+                          army
+                            { units =
+                              map resetArmyMoves army.units
+                            }
+                      )
+              }
+        )
 
 -- View
 mapHeader :: ReactClass { header :: String }
