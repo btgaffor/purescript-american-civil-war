@@ -24,7 +24,7 @@
     "purescript": "^0.13.3",
     "purs-loader": "^3.2.0",
     "webpack": "^4.2.0",
-    "webpack-cli": "^3.1.1",
+    "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.0.0"
   }
 }
